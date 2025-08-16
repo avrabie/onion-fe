@@ -1,6 +1,11 @@
-export default function Cart({ cart, onRemove, onEmpty, onCheckout, loadingAction }) {
+export default function Cart({ cart, products = [], onRemove, onEmpty, onCheckout, loadingAction, onIncrease, onDecrease }) {
   const items = cart?.items || [];
   const total = cart?.totalPrice ?? 0;
+  // Ensure stable rendering order and names
+  const sortedItems = [...items].sort((a, b) => (a.productId ?? 0) - (b.productId ?? 0));
+  function getName(productId) {
+    return products.find((p) => p.id === productId)?.name || `Product #${productId}`;
+  }
   return (
     <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 to-white/[0.03] p-4 sm:p-5 flex flex-col gap-3 min-w-80 shadow-card">
       <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
@@ -10,11 +15,29 @@ export default function Cart({ cart, onRemove, onEmpty, onCheckout, loadingActio
         {items.length === 0 && (
           <div className="text-white/60 text-sm py-6 text-center">Your cart is empty.</div>
         )}
-        {items.map((it) => (
-          <div key={it.id ?? `${it.productId}`} className="py-3 flex items-center justify-between gap-3">
+        {sortedItems.map((it) => (
+          <div key={it.productId} className="py-3 flex items-center justify-between gap-3">
             <div className="flex flex-col">
-              <span className="text-white">Product #{it.productId}</span>
-              <span className="text-xs text-white/60">Qty: {it.quantity}</span>
+              <span className="text-white">{getName(it.productId)}</span>
+              <div className="flex items-center gap-2 mt-1">
+                <button
+                  onClick={() => onDecrease?.(it.productId)}
+                  disabled={loadingAction}
+                  className="h-6 w-6 text-sm rounded bg-white/10 hover:bg-white/20 text-white disabled:opacity-50"
+                  aria-label="Decrease quantity"
+                >
+                  -
+                </button>
+                <span className="text-xs text-white/80 w-8 text-center">{it.quantity}</span>
+                <button
+                  onClick={() => onIncrease?.(it.productId)}
+                  disabled={loadingAction}
+                  className="h-6 w-6 text-sm rounded bg-white/10 hover:bg-white/20 text-white disabled:opacity-50"
+                  aria-label="Increase quantity"
+                >
+                  +
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-emerald-300 font-semibold">${(it.totalPrice ?? (it.price * it.quantity)).toFixed(2)}</span>

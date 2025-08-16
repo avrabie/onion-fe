@@ -113,6 +113,39 @@ function App() {
     }
   }
 
+  async function handleIncrease(productId) {
+    setLoading((s) => ({ ...s, action: true }))
+    setError(null)
+    try {
+      await api.addToCart(userId, { productId, quantity: 1 })
+      await loadCart()
+    } catch (e) {
+      setError(`Failed to increase quantity: ${e.message}`)
+    } finally {
+      setLoading((s) => ({ ...s, action: false }))
+    }
+  }
+
+  async function handleDecrease(productId) {
+    setLoading((s) => ({ ...s, action: true }))
+    setError(null)
+    try {
+      const item = cart?.items?.find((it) => it.productId === productId)
+      if (!item) return
+      if ((item.quantity || 0) > 1) {
+        // Prefer decrementing by 1; backend should adjust quantity
+        await api.addToCart(userId, { productId, quantity: -1 })
+      } else {
+        await api.removeFromCart(userId, { productId })
+      }
+      await loadCart()
+    } catch (e) {
+      setError(`Failed to decrease quantity: ${e.message}`)
+    } finally {
+      setLoading((s) => ({ ...s, action: false }))
+    }
+  }
+
   function absoluteUrl(path) {
     return `${window.location.origin}${path}`
   }
@@ -179,7 +212,7 @@ function App() {
             />
             <Route
               path="/cart"
-              element={<CartPage cart={cart} onRemove={handleRemove} onEmpty={handleEmpty} onCheckout={handleCheckout} loadingAction={loading.action} />}
+              element={<CartPage cart={cart} products={products} onRemove={handleRemove} onEmpty={handleEmpty} onCheckout={handleCheckout} loadingAction={loading.action} onIncrease={handleIncrease} onDecrease={handleDecrease} />}
             />
             <Route path="/about" element={<About />} />
             <Route path="/product/:slug" element={<ProductDetails />} />
