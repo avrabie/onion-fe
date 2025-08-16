@@ -2,8 +2,8 @@ export default function Cart({ cart, onRemove, onEmpty, onCheckout, loadingActio
   const items = cart?.items || [];
   const total = cart?.totalPrice ?? 0;
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-3 min-w-80">
-      <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+    <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 to-white/[0.03] p-4 sm:p-5 flex flex-col gap-3 min-w-80 shadow-card">
+      <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
         🧺 Cart <span className="text-sm text-white/60">({items.length} items)</span>
       </h2>
       <div className="divide-y divide-white/10 max-h-80 overflow-auto pr-1">
@@ -21,7 +21,7 @@ export default function Cart({ cart, onRemove, onEmpty, onCheckout, loadingActio
               <button
                 onClick={() => onRemove(it.productId)}
                 disabled={loadingAction}
-                className="text-xs px-2 py-1 rounded bg-red-600/80 hover:bg-red-600 text-white disabled:opacity-50"
+                className="text-xs px-2 py-1 rounded-lg bg-red-600/90 hover:bg-red-600 text-white disabled:opacity-50"
               >
                 Remove
               </button>

@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { api } from './api'
-import ProductCard from './components/ProductCard.jsx'
-import Cart from './components/Cart.jsx'
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import Home from './pages/Home.jsx'
+import CartPage from './pages/CartPage.jsx'
+import About from './pages/About.jsx'
+import ProductDetails from './pages/ProductDetails.jsx'
 
 function SuccessPage() {
   return (
@@ -31,17 +34,6 @@ function CancelPage() {
 }
 
 function App() {
-  // Simple path-based routing without extra deps
-  const [path, setPath] = useState(window.location.pathname)
-  useEffect(() => {
-    const onPop = () => setPath(window.location.pathname)
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [])
-
-  if (path === '/checkout/success') return <SuccessPage />
-  if (path === '/checkout/cancel') return <CancelPage />
-
   // For dev purposes, a fixed userId. In a real app, this would come from auth.
   const userId = 1
 
@@ -55,7 +47,6 @@ function App() {
     setError(null)
     try {
       const list = await api.getProducts()
-      // The spec returns a schema of Product; if backend returns an array, use directly
       setProducts(Array.isArray(list) ? list : (list?.content || []))
     } catch (e) {
       setError(`Failed to load products: ${e.message}`)
@@ -70,7 +61,6 @@ function App() {
       const c = await api.getCart(userId)
       setCart(c)
     } catch (e) {
-      // If cart for new user doesn't exist, backend might create on first add; ignore 404 gracefully
       setCart({ items: [], totalPrice: 0 })
     } finally {
       setLoading((s) => ({ ...s, cart: false }))
@@ -157,49 +147,52 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      <header className="border-b border-white/10 bg-slate-900/70 sticky top-0 backdrop-blur">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold flex items-center gap-2">🧅 Onion Shop</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-white/70">{loading.products ? 'Loading onions…' : `${products.length} products`}</span>
-            <span className="relative inline-flex items-center">
-              <span className="text-white/80">🧺</span>
-              <span className="absolute -top-2 -right-2 text-xs bg-emerald-600 rounded-full px-1.5 py-0.5">{inCartCount}</span>
-            </span>
+    <BrowserRouter>
+      <div className="min-h-screen bg-slate-900 text-white">
+        <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60">
+          <div className="max-w-6xl mx-auto px-4 py-3 sm:py-4 flex items-center justify-between">
+            <Link to="/" className="text-xl sm:text-2xl font-extrabold tracking-tight flex items-center gap-2">
+              <span className="text-2xl">🧅</span>
+              <span>Onion Shop</span>
+            </Link>
+            <nav className="flex items-center gap-4 sm:gap-6 text-white/80">
+              <Link className="hover:text-white" to="/">Home</Link>
+              <Link className="hover:text-white" to="/about">About</Link>
+              <Link className="relative inline-flex items-center hover:text-white" to="/cart" aria-label="Cart">
+                <span className="text-white/80">🧺</span>
+                <span className="absolute -top-2 -right-2 text-[10px] bg-emerald-600 rounded-full px-1.5 py-0.5 border border-emerald-400/30 shadow">
+                  {inCartCount}
+                </span>
+              </Link>
+              <span className="text-xs sm:text-sm text-white/60 hidden sm:inline">
+                {loading.products ? 'Loading onions…' : `${products.length} products`}
+              </span>
+            </nav>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <section className="md:col-span-2">
-          {error && (
-            <div className="mb-4 p-3 rounded bg-red-600/20 border border-red-600/40 text-red-200 text-sm">{error}</div>
-          )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {loading.products && products.length === 0 && (
-              <div className="col-span-full text-white/70">Loading products…</div>
-            )}
-            {products.map((p) => (
-              <ProductCard key={p.id} product={p} onAdd={handleAdd} />
-            ))}
-          </div>
-        </section>
-        <aside className="md:col-span-1">
-          <Cart
-            cart={cart}
-            onRemove={handleRemove}
-            onEmpty={handleEmpty}
-            onCheckout={handleCheckout}
-            loadingAction={loading.action}
-          />
-        </aside>
-      </main>
+        <main>
+          <Routes>
+            <Route
+              path="/"
+              element={<Home products={products} onAdd={handleAdd} loading={loading.products} error={error} />}
+            />
+            <Route
+              path="/cart"
+              element={<CartPage cart={cart} onRemove={handleRemove} onEmpty={handleEmpty} onCheckout={handleCheckout} loadingAction={loading.action} />}
+            />
+            <Route path="/about" element={<About />} />
+            <Route path="/product/:slug" element={<ProductDetails />} />
+            <Route path="/checkout/success" element={<SuccessPage />} />
+            <Route path="/checkout/cancel" element={<CancelPage />} />
+          </Routes>
+        </main>
 
-      <footer className="border-t border-white/10 py-6 text-center text-white/50">
-        Fresh onions. Local backend. Have a tear-free day.
-      </footer>
-    </div>
+        <footer className="mt-8 border-t border-white/10 py-8 text-center text-white/60">
+          <p className="text-sm">Fresh onions. Local backend. Have a tear-free day.</p>
+        </footer>
+      </div>
+    </BrowserRouter>
   )
 }
 
