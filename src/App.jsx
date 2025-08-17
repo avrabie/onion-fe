@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { api } from './api'
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { HashRouter, Routes, Route, Link } from 'react-router-dom'
 import Home from './pages/Home.jsx'
 import CartPage from './pages/CartPage.jsx'
 import About from './pages/About.jsx'
@@ -14,7 +14,7 @@ function SuccessPage() {
         <div className="text-5xl mb-4">✅</div>
         <h1 className="text-2xl font-bold mb-2">Payment successful</h1>
         <p className="text-white/70 mb-6">Thank you for your purchase. Your onions are on their way!</p>
-        <a href="/" className="inline-block px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500">Back to shop</a>
+        <Link to="/" className="inline-block px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500">Back to shop</Link>
       </div>
     </div>
   )
@@ -27,7 +27,7 @@ function CancelPage() {
         <div className="text-5xl mb-4">⚠️</div>
         <h1 className="text-2xl font-bold mb-2">Payment canceled</h1>
         <p className="text-white/70 mb-6">Your payment was canceled. You can continue shopping and try again.</p>
-        <a href="/" className="inline-block px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-500">Back to shop</a>
+        <Link to="/" className="inline-block px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-500">Back to shop</Link>
       </div>
     </div>
   )
@@ -162,8 +162,8 @@ function App() {
       }
 
       // 2) Ask backend to create checkout session with fully qualified URLs
-      const successUrl = absoluteUrl('/checkout/success')
-      const cancelUrl = absoluteUrl('/checkout/cancel')
+      const successUrl = absoluteUrl('/#/checkout/success')
+      const cancelUrl = absoluteUrl('/#/checkout/cancel')
       const session = await api.createCheckout({ orderId, successUrl, cancelUrl })
       const checkoutUrl = session?.checkoutUrl
       if (!checkoutUrl) {
@@ -180,7 +180,7 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="min-h-screen bg-slate-900 text-white">
         <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60">
           <div className="max-w-6xl mx-auto px-4 py-3 sm:py-4 flex items-center justify-between">
@@ -225,7 +225,7 @@ function App() {
           <p className="text-sm">Fresh onions. Local backend. Have a tear-free day.</p>
         </footer>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
 

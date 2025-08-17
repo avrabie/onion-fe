@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 export default function ProductCard({ product, onAdd }) {
   const outOfStock = product.quantity <= 0;
   const price = product.price?.toFixed ? product.price.toFixed(2) : product.price;
@@ -6,7 +7,7 @@ export default function ProductCard({ product, onAdd }) {
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-b from-white/10 to-white/[0.03] border border-white/10 p-3 sm:p-4 flex flex-col shadow-card hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
       {/* Image */}
-      <a href={`/product/${slug}`} aria-label={`View details for ${product.name}`} className="relative block aspect-square w-full overflow-hidden rounded-xl bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-400/40">
+      <Link to={`/product/${slug}`} aria-label={`View details for ${product.name}`} className="relative block aspect-square w-full overflow-hidden rounded-xl bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-400/40">
         {product.imageUrl ? (
           <img src={product.imageUrl} alt={product.name} className="object-cover w-full h-full transition duration-500 group-hover:scale-[1.03]" />
         ) : (
@@ -22,11 +23,11 @@ export default function ProductCard({ product, onAdd }) {
             Out of stock
           </span>
         )}
-      </a>
+      </Link>
 
       {/* Body */}
       <div className="flex-1 pt-3 sm:pt-4">
-        <a href={`/product/${slug}`} className="text-base sm:text-lg font-semibold text-white leading-snug hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-400/40">{product.name}</a>
+        <Link to={`/product/${slug}`} className="text-base sm:text-lg font-semibold text-white leading-snug hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-400/40">{product.name}</Link>
         <p className="mt-1 text-xs sm:text-sm text-white/70 line-clamp-2">{product.description || 'Delicious onion from the finest fields.'}</p>
       </div>
 

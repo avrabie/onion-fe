@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import ProductCard from '../components/ProductCard.jsx'
+import { Link } from 'react-router-dom'
 
 export default function Home({ products, onAdd, loading, error }) {
   const [query, setQuery] = useState('')
@@ -48,7 +49,7 @@ export default function Home({ products, onAdd, loading, error }) {
             </div>
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <a href="#shop" className="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-400/40">Shop onions</a>
-              <a href="/about" className="inline-flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/15 px-4 py-2.5 font-medium border border-white/10 focus:outline-none focus:ring-2 focus:ring-white/30">Learn more</a>
+              <Link to="/about" className="inline-flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/15 px-4 py-2.5 font-medium border border-white/10 focus:outline-none focus:ring-2 focus:ring-white/30">Learn more</Link>
             </div>
             <div className="mt-6 flex gap-6 text-xs text-white/70">
               <div className="flex items-center gap-2"><span>⚡</span><span>Next‑day delivery</span></div>
