@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
-import { api } from './api'
+import { api, saveAppUserId } from './api'
 import { HashRouter, Routes, Route, Link } from 'react-router-dom'
 import Home from './pages/Home.jsx'
 import CartPage from './pages/CartPage.jsx'
 import About from './pages/About.jsx'
 import ProductDetails from './pages/ProductDetails.jsx'
+import Login from './pages/Login.jsx'
+import Logout from './pages/Logout.jsx'
+import UserProfile from './pages/UserProfile.jsx'
+import Register from './pages/Register.jsx'
 
 function SuccessPage() {
   return (
@@ -33,14 +37,83 @@ function CancelPage() {
   )
 }
 
-function App() {
-  // For dev purposes, a fixed userId. In a real app, this would come from auth.
-  const userId = 1
+function getCookie(name) {
+  return document.cookie
+    .split('; ')
+    .find((row) => row.startsWith(name + '='))
+    ?.split('=')[1]
+}
 
+function LogoutButton() {
+  const action = api.getLogoutUrl()
+  const csrf = getCookie('XSRF-TOKEN') || getCookie('X-CSRF-TOKEN') || getCookie('csrfToken')
+  return (
+    <form action={action} method="POST">
+      {csrf && <input type="hidden" name="_csrf" value={decodeURIComponent(csrf)} />}
+      <button type="submit" className="hover:text-white">Logout</button>
+    </form>
+  )
+}
+
+// ----- Guest cart helpers -----
+function readGuestCart() {
+  try {
+    const raw = localStorage.getItem('onion.guestCart')
+    return raw ? JSON.parse(raw) : { items: [], totalPrice: 0 }
+  } catch (_) {
+    return { items: [], totalPrice: 0 }
+  }
+}
+function writeGuestCart(cart) {
+  try {
+    localStorage.setItem('onion.guestCart', JSON.stringify(cart))
+  } catch (_) {}
+}
+function computeCartTotals(cart, products) {
+  const priceById = new Map(products.map(p => [p.id, Number(p.price) || 0]))
+  const items = (cart?.items || []).map(it => ({ ...it }))
+  let total = 0
+  for (const it of items) {
+    const q = Number(it.quantity) || 0
+    const price = priceById.get(it.productId) ?? 0
+    total += q * price
+  }
+  return { items, totalPrice: Number(total.toFixed(2)) }
+}
+
+// Normalize server cart (CartResponse) to UI-friendly shape
+function normalizeCart(serverCart, products) {
+  if (!serverCart || typeof serverCart !== 'object') {
+    return { items: [], totalPrice: 0 }
+  }
+  const items = Array.isArray(serverCart.items) ? serverCart.items.map((it) => ({
+    productId: it.productId,
+    quantity: it.quantity,
+    // keep optional price/totalPrice if provided by backend for display accuracy
+    price: it.price,
+    totalPrice: it.totalPrice,
+  })) : []
+  // Prefer backend totalPrice if it is a finite number; otherwise compute from products catalog
+  const backendTotal = Number(serverCart.totalPrice)
+  const totalPrice = Number.isFinite(backendTotal) ? backendTotal : computeCartTotals({ items }, products).totalPrice
+  return { items, totalPrice }
+}
+
+function App() {
   const [products, setProducts] = useState([])
   const [cart, setCart] = useState(null)
   const [loading, setLoading] = useState({ products: false, cart: false, action: false })
   const [error, setError] = useState(null)
+
+  // Auth state
+  const [currentUser, setCurrentUser] = useState(null)
+  const [authChecked, setAuthChecked] = useState(false)
+
+  // App user id resolved in backend DB (used for cart)
+  const [userId, setUserId] = useState(() => {
+    const v = localStorage.getItem('onion.appUserId');
+    return v ? Number(v) : null;
+  })
 
   async function loadProducts() {
     setLoading((s) => ({ ...s, products: true }))
@@ -58,8 +131,16 @@ function App() {
   async function loadCart() {
     setLoading((s) => ({ ...s, cart: true }))
     try {
-      const c = await api.getCart(userId)
-      setCart(c)
+      if (!userId) {
+        // guest cart from localStorage
+        const guest = readGuestCart()
+        const computed = computeCartTotals(guest, products)
+        setCart(computed)
+      } else {
+        const c = await api.getCart(userId)
+        const normalized = normalizeCart(c, products)
+        setCart(normalized)
+      }
     } catch (e) {
       setCart({ items: [], totalPrice: 0 })
     } finally {
@@ -69,17 +150,94 @@ function App() {
 
   useEffect(() => {
     loadProducts()
-    loadCart()
+    // Check auth status once on mount and ensure app user exists
+    api.getCurrentUser()
+      .then(async (u) => {
+        setCurrentUser(u)
+        if (u) {
+          try {
+            const appUser = await api.ensureAppUserFromMe()
+            if (appUser && appUser.id != null) {
+              setUserId(appUser.id)
+              saveAppUserId(appUser.id)
+            }
+          } catch (e) {
+            console.warn('Failed to ensure app user:', e)
+          }
+        } else {
+          // Not authenticated, clear local user state
+          setUserId(null)
+          saveAppUserId(null)
+        }
+      })
+      .finally(() => setAuthChecked(true))
   }, [])
 
-  const inCartCount = useMemo(() => cart?.items?.reduce((acc, it) => acc + (it.quantity || 0), 0) || 0, [cart])
+  // React to local changes of onion.appUserId (same-tab) and common lifecycle events
+  useEffect(() => {
+    function readId() {
+      try {
+        const v = localStorage.getItem('onion.appUserId')
+        const parsed = v ? Number(v) : null
+        setUserId((prev) => (prev !== parsed ? parsed : prev))
+      } catch (_) {}
+    }
+    function onChange() { readId() }
+    window.addEventListener('appUserIdChanged', onChange)
+    window.addEventListener('focus', onChange)
+    window.addEventListener('hashchange', onChange)
+    return () => {
+      window.removeEventListener('appUserIdChanged', onChange)
+      window.removeEventListener('focus', onChange)
+      window.removeEventListener('hashchange', onChange)
+    }
+  }, [])
+
+  // Load or recompute cart when userId or products change; merge guest cart into user cart upon login
+  useEffect(() => {
+    async function sync() {
+      if (userId) {
+        // If there is a guest cart, merge it once
+        const guest = readGuestCart()
+        const items = Array.isArray(guest.items) ? guest.items : []
+        if (items.length > 0) {
+          try {
+            for (const it of items) {
+              if (it?.productId && it?.quantity) {
+                await api.addToCart(userId, { productId: it.productId, quantity: it.quantity })
+              }
+            }
+          } catch (e) {
+            console.warn('Failed merging guest cart:', e)
+          } finally {
+            writeGuestCart({ items: [], totalPrice: 0 })
+          }
+        }
+      }
+      await loadCart()
+    }
+    sync()
+  }, [userId, products])
+
+  const inCartCount = useMemo(() => (cart?.items?.reduce((acc, it) => Number(acc) + (Number(it?.quantity) || 0), 0)) || 0, [cart])
 
   async function handleAdd(product) {
     setLoading((s) => ({ ...s, action: true }))
     setError(null)
     try {
-      await api.addToCart(userId, { productId: product.id, quantity: 1 })
-      await loadCart()
+      if (!userId) {
+        const guest = readGuestCart()
+        const items = Array.isArray(guest.items) ? [...guest.items] : []
+        const idx = items.findIndex(it => it.productId === product.id)
+        if (idx >= 0) items[idx] = { ...items[idx], quantity: (items[idx].quantity || 0) + 1 }
+        else items.push({ productId: product.id, quantity: 1 })
+        const updated = computeCartTotals({ items }, products)
+        writeGuestCart(updated)
+        setCart(updated)
+      } else {
+        await api.addToCart(userId, { productId: product.id, quantity: 1 })
+        await loadCart()
+      }
     } catch (e) {
       setError(`Failed to add to cart: ${e.message}`)
     } finally {
@@ -91,8 +249,16 @@ function App() {
     setLoading((s) => ({ ...s, action: true }))
     setError(null)
     try {
-      await api.removeFromCart(userId, { productId })
-      await loadCart()
+      if (!userId) {
+        const guest = readGuestCart()
+        const items = (guest.items || []).filter(it => it.productId !== productId)
+        const updated = computeCartTotals({ items }, products)
+        writeGuestCart(updated)
+        setCart(updated)
+      } else {
+        await api.removeFromCart(userId, { productId })
+        await loadCart()
+      }
     } catch (e) {
       setError(`Failed to remove item: ${e.message}`)
     } finally {
@@ -104,8 +270,14 @@ function App() {
     setLoading((s) => ({ ...s, action: true }))
     setError(null)
     try {
-      await api.emptyCart(userId)
-      await loadCart()
+      if (!userId) {
+        const updated = { items: [], totalPrice: 0 }
+        writeGuestCart(updated)
+        setCart(updated)
+      } else {
+        await api.emptyCart(userId)
+        await loadCart()
+      }
     } catch (e) {
       setError(`Failed to empty cart: ${e.message}`)
     } finally {
@@ -117,8 +289,19 @@ function App() {
     setLoading((s) => ({ ...s, action: true }))
     setError(null)
     try {
-      await api.addToCart(userId, { productId, quantity: 1 })
-      await loadCart()
+      if (!userId) {
+        const guest = readGuestCart()
+        const items = Array.isArray(guest.items) ? [...guest.items] : []
+        const idx = items.findIndex(it => it.productId === productId)
+        if (idx >= 0) items[idx] = { ...items[idx], quantity: (items[idx].quantity || 0) + 1 }
+        else items.push({ productId, quantity: 1 })
+        const updated = computeCartTotals({ items }, products)
+        writeGuestCart(updated)
+        setCart(updated)
+      } else {
+        await api.addToCart(userId, { productId, quantity: 1 })
+        await loadCart()
+      }
     } catch (e) {
       setError(`Failed to increase quantity: ${e.message}`)
     } finally {
@@ -130,15 +313,30 @@ function App() {
     setLoading((s) => ({ ...s, action: true }))
     setError(null)
     try {
-      const item = cart?.items?.find((it) => it.productId === productId)
-      if (!item) return
-      if ((item.quantity || 0) > 1) {
-        // Prefer decrementing by 1; backend should adjust quantity
-        await api.addToCart(userId, { productId, quantity: -1 })
+      if (!userId) {
+        const guest = readGuestCart()
+        const items = Array.isArray(guest.items) ? [...guest.items] : []
+        const idx = items.findIndex(it => it.productId === productId)
+        if (idx === -1) {
+          setLoading((s) => ({ ...s, action: false }))
+          return
+        }
+        const qty = (items[idx].quantity || 0) - 1
+        if (qty > 0) items[idx] = { ...items[idx], quantity: qty }
+        else items.splice(idx, 1)
+        const updated = computeCartTotals({ items }, products)
+        writeGuestCart(updated)
+        setCart(updated)
       } else {
-        await api.removeFromCart(userId, { productId })
+        const item = cart?.items?.find((it) => it.productId === productId)
+        if (!item) return
+        if ((item.quantity || 0) > 1) {
+          await api.addToCart(userId, { productId, quantity: -1 })
+        } else {
+          await api.removeFromCart(userId, { productId })
+        }
+        await loadCart()
       }
-      await loadCart()
     } catch (e) {
       setError(`Failed to decrease quantity: ${e.message}`)
     } finally {
@@ -151,6 +349,10 @@ function App() {
   }
 
   async function handleCheckout() {
+    if (!userId) {
+      setError('Please log in before checking out.')
+      return
+    }
     setLoading((s) => ({ ...s, action: true }))
     setError(null)
     try {
@@ -191,6 +393,19 @@ function App() {
             <nav className="flex items-center gap-4 sm:gap-6 text-white/80">
               <Link className="hover:text-white" to="/">Home</Link>
               <Link className="hover:text-white" to="/about">About</Link>
+              {authChecked && (
+                currentUser ? (
+                  <div className="flex items-center gap-3">
+                    <Link className="text-sm text-white/70 hidden sm:inline hover:text-white" to="/me">{currentUser.name || currentUser.username || currentUser.email}</Link>
+                    <LogoutButton />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <Link className="hover:text-white" to="/login">Login</Link>
+                    <Link className="hover:text-white" to="/register">Register</Link>
+                  </div>
+                )
+              )}
               <Link className="relative inline-flex items-center hover:text-white" to="/cart" aria-label="Cart">
                 <span className="text-white/80">🧺</span>
                 <span className="absolute -top-2 -right-2 text-[10px] bg-emerald-600 rounded-full px-1.5 py-0.5 border border-emerald-400/30 shadow">
@@ -218,6 +433,10 @@ function App() {
             <Route path="/product/:slug" element={<ProductDetails />} />
             <Route path="/checkout/success" element={<SuccessPage />} />
             <Route path="/checkout/cancel" element={<CancelPage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/logout" element={<Logout />} />
+            <Route path="/me" element={<UserProfile />} />
           </Routes>
         </main>
 

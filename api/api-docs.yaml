@@ -4,9 +4,9 @@
     "title": "Demo Local AI API",
     "description": "API documentation for Demo Local AI application",
     "contact": {
-      "name": "HelloWorlds",
-      "url": "https://helloworlds.space",
-      "email": "info@helloworlds.space"
+      "name": "ExecodeX",
+      "url": "https://execodex.com",
+      "email": "info@execodex.com"
     },
     "license": {
       "name": "Apache 2.0",
@@ -1028,6 +1028,90 @@
         }
       }
     },
+    "/users/ensure-from-me": {
+      "post": {
+        "tags": [
+          "user-handler"
+        ],
+        "summary": "Ensure current user from principal",
+        "description": "Ensures the request is authenticated, extracts email from principal, and returns the application user without password.",
+        "operationId": "ensureUserFromMe",
+        "responses": {
+          "200": {
+            "description": "User returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Email missing in principal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "tags": [
+          "user-handler"
+        ],
+        "summary": "Get current Google user info",
+        "description": "Returns OAuth2/OIDC information about the currently logged-in Google user. Returns 401 if not authenticated.",
+        "operationId": "getCurrentGoogleUser",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleUserInfo"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/search": {
       "get": {
         "tags": [
@@ -1657,9 +1741,77 @@
           "email": {
             "type": "string"
           },
+          "pictureUrl": {
+            "type": "string"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "UserResponse": {
+        "required": [
+          "createdAt",
+          "email",
+          "username"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pictureUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "GoogleUserInfo": {
+        "required": [
+          "scopes"
+        ],
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "givenName": {
+            "type": "string"
+          },
+          "familyName": {
+            "type": "string"
+          },
+          "picture": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       }

@@ -6,6 +6,14 @@ export default function Cart({ cart, products = [], onRemove, onEmpty, onCheckou
   function getName(productId) {
     return products.find((p) => p.id === productId)?.name || `Product #${productId}`;
   }
+  function getUnitPrice(productId, itemPrice) {
+    // Prefer numeric itemPrice if sent by backend; fall back to product catalog price
+    const p = products.find((pp) => pp.id === productId);
+    const fromItem = itemPrice != null ? Number(itemPrice) : NaN;
+    const fromProduct = p && p.price != null ? Number(p.price) : NaN;
+    const val = Number.isFinite(fromItem) ? fromItem : (Number.isFinite(fromProduct) ? fromProduct : 0);
+    return val;
+  }
   return (
     <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 to-white/[0.03] p-4 sm:p-5 flex flex-col gap-3 min-w-80 shadow-card">
       <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
@@ -15,46 +23,53 @@ export default function Cart({ cart, products = [], onRemove, onEmpty, onCheckou
         {items.length === 0 && (
           <div className="text-white/60 text-sm py-6 text-center">Your cart is empty.</div>
         )}
-        {sortedItems.map((it) => (
-          <div key={it.productId} className="py-3 flex items-center justify-between gap-3">
-            <div className="flex flex-col">
-              <span className="text-white">{getName(it.productId)}</span>
-              <div className="flex items-center gap-2 mt-1">
+        {sortedItems.map((it) => {
+          const qty = Number(it.quantity) || 0;
+          const itemTotalCandidate = it.totalPrice != null ? Number(it.totalPrice) : NaN;
+          const unit = getUnitPrice(it.productId, it.price);
+          const computed = unit * qty;
+          const lineTotal = Number.isFinite(itemTotalCandidate) ? itemTotalCandidate : (Number.isFinite(computed) ? computed : 0);
+          return (
+            <div key={it.productId} className="py-3 flex items-center justify-between gap-3">
+              <div className="flex flex-col">
+                <span className="text-white">{getName(it.productId)}</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <button
+                    onClick={() => onDecrease?.(it.productId)}
+                    disabled={loadingAction}
+                    className="h-6 w-6 text-sm rounded bg-white/10 hover:bg-white/20 text-white disabled:opacity-50"
+                    aria-label="Decrease quantity"
+                  >
+                    -
+                  </button>
+                  <span className="text-xs text-white/80 w-8 text-center">{qty}</span>
+                  <button
+                    onClick={() => onIncrease?.(it.productId)}
+                    disabled={loadingAction}
+                    className="h-6 w-6 text-sm rounded bg-white/10 hover:bg-white/20 text-white disabled:opacity-50"
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-emerald-300 font-semibold">${Number(lineTotal).toFixed(2)}</span>
                 <button
-                  onClick={() => onDecrease?.(it.productId)}
+                  onClick={() => onRemove(it.productId)}
                   disabled={loadingAction}
-                  className="h-6 w-6 text-sm rounded bg-white/10 hover:bg-white/20 text-white disabled:opacity-50"
-                  aria-label="Decrease quantity"
+                  className="text-xs px-2 py-1 rounded-lg bg-red-600/90 hover:bg-red-600 text-white disabled:opacity-50"
                 >
-                  -
-                </button>
-                <span className="text-xs text-white/80 w-8 text-center">{it.quantity}</span>
-                <button
-                  onClick={() => onIncrease?.(it.productId)}
-                  disabled={loadingAction}
-                  className="h-6 w-6 text-sm rounded bg-white/10 hover:bg-white/20 text-white disabled:opacity-50"
-                  aria-label="Increase quantity"
-                >
-                  +
+                  Remove
                 </button>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-emerald-300 font-semibold">${(it.totalPrice ?? (it.price * it.quantity)).toFixed(2)}</span>
-              <button
-                onClick={() => onRemove(it.productId)}
-                disabled={loadingAction}
-                className="text-xs px-2 py-1 rounded-lg bg-red-600/90 hover:bg-red-600 text-white disabled:opacity-50"
-              >
-                Remove
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div className="flex items-center justify-between pt-2">
         <span className="text-white/80">Total</span>
-        <span className="text-xl font-bold text-emerald-300">${Number(total).toFixed(2)}</span>
+        <span className="text-xl font-bold text-emerald-300">${Number(total || 0).toFixed(2)}</span>
       </div>
       <div className="flex gap-2">
         <button

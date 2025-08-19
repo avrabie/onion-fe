@@ -1,12 +1,42 @@
-# React + Vite
+# Onion Shop FE (React + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is a React frontend (Vite) for the Onion Shop. It talks to a Spring Boot backend.
 
-Currently, two official plugins are available:
+## Running locally
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Start your Spring Boot backend on http://localhost:8080
+- Start the frontend dev server:
 
-## Expanding the ESLint configuration
+```
+npm install
+npm run dev
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+By default, Vite proxies API calls to the backend for these paths: `/products`, `/users`, `/api`, `/login`, `/logout`, `/oauth2`.
+
+If your backend runs on a different origin, set an env variable to fully qualify requests and form posts:
+
+```
+VITE_API_BASE=https://your-backend.example.com
+```
+
+## Authentication
+
+The frontend provides a login page at `/#/login` with two options:
+
+- Continue with Google: redirects the browser to the backend at `/oauth2/authorization/google` (Spring Security OAuth2).
+- Username/Password: posts a regular HTML form to the backend at `/login` (Spring Security formLogin).
+
+When the user is authenticated, the header shows a Logout button that posts a form to `/logout`.
+
+Notes:
+- The username/password and logout forms use standard POST (not fetch) to avoid SPA CSRF handling. If your Spring Security setup requires a CSRF token on logout, expose a cookie named `XSRF-TOKEN` (or `X-CSRF-TOKEN`) and Spring’s default `_csrf` field will be included automatically by the UI if the cookie exists.
+- Auth state is detected using the dedicated `/users/me` endpoint. You can adjust this in `src/api.js` if your backend differs.
+- When logged in, the header shows your name (prefers `name`, then `username`, then `email`) as a link to `/#/me` (User Profile page) and a Logout button that posts directly to `/logout` (CSRF cookie supported). A dedicated logout page still exists at `/#/logout` if you navigate to it directly.
+- For dev, the Vite proxy forwards `/login`, `/logout`, and `/oauth2/*` to `http://localhost:8080` when `VITE_API_BASE` is not set.
+- In production or when `VITE_API_BASE` is set, form posts and links are fully qualified to `${VITE_API_BASE}`.
+- On successful login, Spring Security will issue a session cookie and likely redirect. Configure your backend's success URL to point back to the SPA if needed (e.g., `/#/`).
+
+## Payments
+
+Checkout flow creates an order and requests a payment session from the backend, then redirects to Stripe Checkout.
