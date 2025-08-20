@@ -21,13 +21,31 @@ async function request(path, options = {}) {
     let msg = `${res.status} ${res.statusText}`;
     try {
       const data = await res.json();
-      msg = data.message || JSON.stringify(data);
+      msg = data?.message || JSON.stringify(data);
     } catch (_) {}
     throw new Error(msg);
   }
-  // some endpoints may return 204 or empty
+  // some endpoints may return 204 or empty; parse according to Content-Type
   const text = await res.text();
-  return text ? JSON.parse(text) : null;
+  if (!text) return null;
+  const ct = (res.headers.get('content-type') || '').toLowerCase();
+  if (ct.includes('application/json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
+    try {
+      const parsed = JSON.parse(text);
+      // Handle double-encoded JSON strings (e.g., "[{...}]")
+      if (typeof parsed === 'string') {
+        const s = parsed.trim();
+        if (s.startsWith('{') || s.startsWith('[')) {
+          try { return JSON.parse(s); } catch (_) { return parsed; }
+        }
+      }
+      return parsed;
+    } catch (e) {
+      // fallback to raw text if parsing fails
+      return text;
+    }
+  }
+  return text;
 }
 
 function randomPassword(len = 24) {
@@ -76,7 +94,22 @@ export const api = {
       if (res.status === 401 || res.status === 403) return null;
       if (!res.ok) return null;
       const text = await res.text();
-      return text ? JSON.parse(text) : {};
+      if (!text) return {};
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (ct.includes('application/json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
+        try {
+          const parsed = JSON.parse(text);
+          if (typeof parsed === 'string') {
+            const s = parsed.trim();
+            if (s.startsWith('{') || s.startsWith('[')) {
+              try { return JSON.parse(s); } catch (_) { return {}; }
+            }
+          }
+          return parsed || {};
+        } catch (_) { return {}; }
+      }
+      // If not JSON, return empty object to avoid crashing callers
+      return {};
     } catch (_) {
       return null;
     }
@@ -144,5 +177,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ orderId, successUrl, cancelUrl }),
     });
+  },
+
+  // Orders
+  async getOrdersByUser(userId) {
+    return request(`/orders/user/${userId}`, { method: 'GET' });
+  },
+  async getOrderItems(orderId) {
+    return request(`/orders/${encodeURIComponent(orderId)}/items`, { method: 'GET' });
   },
 };

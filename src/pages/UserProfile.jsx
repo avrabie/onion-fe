@@ -11,6 +11,15 @@ export default function UserProfile() {
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState(null)
 
+  // Orders state
+  const [orders, setOrders] = useState([])
+  const [orderItems, setOrderItems] = useState({}) // { [orderId]: items[] }
+  const [ordersLoading, setOrdersLoading] = useState(false)
+  const [ordersError, setOrdersError] = useState(null)
+
+  // Products for displaying product names in orders
+  const [products, setProducts] = useState([])
+
   useEffect(() => {
     let mounted = true
     async function load() {
@@ -26,7 +35,7 @@ export default function UserProfile() {
         if (!mounted) return
         setMe(current)
 
-        // Try to determine or create the application user
+        // Resolve application user id for the current principal and keep it in sync
         let id
         try {
           const idRaw = localStorage.getItem('onion.appUserId')
@@ -35,18 +44,16 @@ export default function UserProfile() {
           id = null
         }
 
-        // If we don't have an id yet, ask backend to ensure/link the app user from current principal
-        if (!id) {
-          try {
-            const ensured = await api.ensureAppUserFromMe()
-            if (ensured && ensured.id != null) {
-              id = ensured.id
-              saveAppUserId(id)
-              if (mounted) setAppUser(ensured)
-            }
-          } catch (_) {
-            // ignore; we may still be able to fetch later
+        // Always ensure/link the app user from current principal to avoid stale localStorage ids
+        try {
+          const ensured = await api.ensureAppUserFromMe()
+          if (ensured && ensured.id != null) {
+            id = ensured.id
+            saveAppUserId(id)
+            if (mounted) setAppUser(ensured)
           }
+        } catch (_) {
+          // ignore; we may still be able to fetch later
         }
 
         // If we have an id but appUser not set yet, fetch details
@@ -55,7 +62,15 @@ export default function UserProfile() {
             const res = await fetch(buildUrl(`/users/${encodeURIComponent(id)}`), { credentials: 'include' })
             if (res.ok) {
               const text = await res.text()
-              const data = text ? JSON.parse(text) : null
+              let data = null
+              if (text) {
+                const ct = (res.headers.get('content-type') || '').toLowerCase()
+                if (ct.includes('application/json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
+                  try { data = JSON.parse(text) } catch (_) { data = null }
+                } else {
+                  data = null
+                }
+              }
               if (mounted) setAppUser(data)
             }
           } catch (_) {
@@ -71,6 +86,60 @@ export default function UserProfile() {
     load()
     return () => { mounted = false }
   }, [navigate])
+
+  // Load orders once we know the application user id
+  useEffect(() => {
+    let active = true
+    async function loadOrders() {
+      if (!appUser?.id) return
+      setOrdersLoading(true)
+      setOrdersError(null)
+      try {
+        const res = await api.getOrdersByUser(appUser.id)
+        // Some backends may return a single order object instead of array
+        const listRaw = Array.isArray(res) ? res : (res ? [res] : [])
+        const list = listRaw.filter((o) => o && typeof o === 'object' && o.id != null)
+        if (!active) return
+        setOrders(list)
+        // Fetch items for each order; load in parallel
+        const entries = await Promise.all(list.map(async (o) => {
+          try {
+            const itemsRes = await api.getOrderItems(o.id)
+            const items = Array.isArray(itemsRes) ? itemsRes : (itemsRes ? [itemsRes] : [])
+            return [o.id, items]
+          } catch (_e) {
+            return [o.id, []]
+          }
+        }))
+        if (!active) return
+        setOrderItems(Object.fromEntries(entries))
+      } catch (e) {
+        if (active) setOrdersError(e?.message || 'Failed to load your orders')
+      } finally {
+        if (active) setOrdersLoading(false)
+      }
+    }
+    loadOrders()
+    return () => { active = false }
+  }, [appUser?.id])
+
+  // Load products once (to resolve product names by id)
+  useEffect(() => {
+    let active = true
+    async function loadProducts() {
+      try {
+        const list = await api.getProducts()
+        const arr = Array.isArray(list) ? list : (list?.content || [])
+        if (active) setProducts(arr)
+      } catch (_) {
+        // ignore, we can still render IDs without names
+      }
+    }
+    loadProducts()
+    return () => { active = false }
+  }, [])
+
+  const productNameById = useMemo(() => new Map((products || []).map((p) => [p.id, p.name])), [products])
 
   const displayName = useMemo(() => me?.name || me?.username || me?.email || 'User', [me])
 
@@ -196,6 +265,57 @@ export default function UserProfile() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Orders section */}
+        <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-6">
+          <h2 className="text-lg font-bold mb-2">My Orders</h2>
+
+          {ordersLoading && (
+            <div className="text-white/70 text-sm">Loading your orders…</div>
+          )}
+          {ordersError && (
+            <div className="text-red-300 text-sm mb-3">{ordersError}</div>
+          )}
+          {!ordersLoading && !ordersError && orders.length === 0 && (
+            <div className="text-white/60 text-sm">You have no orders yet.</div>
+          )}
+
+          <div className="space-y-4">
+            {orders.map((order) => {
+              const items = orderItems[order.id] || []
+              return (
+                <div key={order.id} className="rounded-xl border border-white/10 p-4 bg-white/[0.03]">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="text-sm text-white/80">
+                      <div><span className="text-white/60">Order #</span> {order.id}</div>
+                      <div><span className="text-white/60">Date:</span> {order.orderDate ? new Date(order.orderDate).toLocaleString() : '—'}</div>
+                    </div>
+                    <div className="text-sm">
+                      <span className="px-2 py-0.5 rounded-full border border-white/10 bg-white/10">
+                        {order.status || 'UNKNOWN'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-sm text-white/80">
+                    <div className="mb-2"><span className="text-white/60">Total:</span> {typeof order.totalAmount === 'number' ? order.totalAmount.toFixed(2) : order.totalAmount}</div>
+                    <div className="text-white/90 font-semibold mb-1">Items</div>
+                    {items.length === 0 ? (
+                      <div className="text-white/60">No items available</div>
+                    ) : (
+                      <ul className="list-disc pl-5 space-y-1">
+                        {items.map((it, idx) => (
+                          <li key={it.id || idx}>
+                            <span className="text-white/60">Product:</span> {productNameById.get(it.productId) || 'Unknown'} <span className="text-white/60">(ID:</span> {it.productId}<span className="text-white/60">)</span> · <span className="text-white/60">Qty:</span> {it.quantity} · <span className="text-white/60">Price:</span> {typeof it.price === 'number' ? it.price.toFixed(2) : it.price}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>

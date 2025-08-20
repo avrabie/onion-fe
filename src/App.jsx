@@ -402,7 +402,6 @@ function App() {
                 ) : (
                   <div className="flex items-center gap-3">
                     <Link className="hover:text-white" to="/login">Login</Link>
-                    <Link className="hover:text-white" to="/register">Register</Link>
                   </div>
                 )
               )}
@@ -427,7 +426,7 @@ function App() {
             />
             <Route
               path="/cart"
-              element={<CartPage cart={cart} products={products} onRemove={handleRemove} onEmpty={handleEmpty} onCheckout={handleCheckout} loadingAction={loading.action} onIncrease={handleIncrease} onDecrease={handleDecrease} />}
+              element={<CartPage isAuthenticated={!!currentUser} cart={cart} products={products} onRemove={handleRemove} onEmpty={handleEmpty} onCheckout={handleCheckout} loadingAction={loading.action} onIncrease={handleIncrease} onDecrease={handleDecrease} />}
             />
             <Route path="/about" element={<About />} />
             <Route path="/product/:slug" element={<ProductDetails />} />

@@ -1,4 +1,6 @@
-export default function Cart({ cart, products = [], onRemove, onEmpty, onCheckout, loadingAction, onIncrease, onDecrease }) {
+import { Link } from 'react-router-dom'
+
+export default function Cart({ isAuthenticated, cart, products = [], onRemove, onEmpty, onCheckout, loadingAction, onIncrease, onDecrease }) {
   const items = cart?.items || [];
   const total = cart?.totalPrice ?? 0;
   // Ensure stable rendering order and names
@@ -81,12 +83,25 @@ export default function Cart({ cart, products = [], onRemove, onEmpty, onCheckou
         </button>
         <button
           onClick={onCheckout}
-          disabled={items.length === 0 || loadingAction}
+          disabled={items.length === 0 || loadingAction || !isAuthenticated}
           className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50"
+          title={!isAuthenticated ? 'Please login or register to checkout' : undefined}
         >
           Checkout
         </button>
       </div>
+      {!isAuthenticated && items.length > 0 && (
+        <div className="mt-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 text-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <span>
+              You need an account to complete your purchase. Please log in or create an account first.
+            </span>
+            <Link to="/login" className="inline-flex justify-center rounded-md bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-white">
+              Login / Register
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
