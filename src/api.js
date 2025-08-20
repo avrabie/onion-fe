@@ -88,7 +88,7 @@ export const api = {
     return buildUrl('/logout');
   },
   async getCurrentUser() {
-    // OAuth/OIDC info (Google) for the current authenticated session
+    // OAuth/OIDC info (current provider) for the current authenticated session
     try {
       const res = await fetch(buildUrl('/users/me'), { credentials: 'include' });
       if (res.status === 401 || res.status === 403) return null;
@@ -114,6 +114,24 @@ export const api = {
       return null;
     }
   },
+  async getAuthProvider() {
+    // Returns { provider: string } or null if unauthenticated
+    try {
+      const res = await fetch(buildUrl('/users/me/provider'), { credentials: 'include' });
+      if (res.status === 401 || res.status === 403) return null;
+      if (!res.ok) return null;
+      const text = await res.text();
+      if (!text) return null;
+      try {
+        const data = JSON.parse(text);
+        return data;
+      } catch (_) {
+        return { provider: String(text).trim() };
+      }
+    } catch (_) {
+      return null;
+    }
+  },
   async ensureAppUserFromMe() {
     // Ensure application user exists using the current principal (e.g., Google login)
     return request('/users/ensure-from-me', { method: 'POST' });
@@ -125,11 +143,11 @@ export const api = {
       body: JSON.stringify({ username, email, password, pictureUrl }),
     });
   },
-  async createUserFromGoogle() {
-    // Create user using info from /users/me (Google user info). Generates a strong random password.
+  async createUserFromOAuth() {
+    // Create user using info from /users/me (OAuth user info for any provider). Generates a strong random password.
     const me = await this.getCurrentUser();
     if (!me || !me.email) {
-      throw new Error('Google session not available or no email in profile');
+      throw new Error('OAuth session not available or no email in profile');
     }
     const email = me.email;
     let username = me.name && me.name.trim() ? me.name.trim() : (email.split('@')[0] || 'user');
@@ -138,6 +156,10 @@ export const api = {
     const pictureUrl = me.picture || undefined;
     const password = randomPassword(24);
     return this.createUser({ username, email, password, pictureUrl });
+  },
+  async createUserFromGoogle() {
+    // Backward-compatible alias to the generic OAuth creator
+    return this.createUserFromOAuth();
   },
 
   // Products

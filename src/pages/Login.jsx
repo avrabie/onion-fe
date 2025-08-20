@@ -7,6 +7,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
 
   const googleUrl = useMemo(() => api.getOAuthUrl('google'), [])
+  const githubUrl = useMemo(() => api.getOAuthUrl('github'), [])
   const loginAction = useMemo(() => api.getLoginUrl(), [])
 
   return (
@@ -16,15 +17,23 @@ export default function Login() {
           <div className="text-center mb-6">
             <div className="text-5xl mb-3">🔐</div>
             <h1 className="text-2xl font-extrabold tracking-tight">Sign in</h1>
-            <p className="text-white/70 text-sm mt-1">Continue with Google or use your account</p>
+            <p className="text-white/70 text-sm mt-1">Continue with Google or GitHub, or use your account</p>
           </div>
 
           <a
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 transition-colors py-2.5 mb-4"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 transition-colors py-2.5 mb-2"
             href={googleUrl}
           >
             <span>Continue with</span>
             <span className="text-lg">🔎 Google</span>
+          </a>
+
+          <a
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 transition-colors py-2.5 mb-4"
+            href={githubUrl}
+          >
+            <span>Continue with</span>
+            <span className="text-lg">🐙 GitHub</span>
           </a>
 
           <div className="flex items-center gap-3 my-4">

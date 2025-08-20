@@ -1034,7 +1034,7 @@
           "user-handler"
         ],
         "summary": "Ensure current user from principal",
-        "description": "Ensures the request is authenticated, extracts email from principal, and returns the application user without password.",
+        "description": "Ensures the request is authenticated, extracts email and profile from principal, and returns the application user (creates it if not present).",
         "operationId": "ensureUserFromMe",
         "responses": {
           "200": {
@@ -1066,9 +1066,38 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "tags": [
+          "user-handler"
+        ],
+        "summary": "Get current Google user info or Github user info",
+        "description": "Returns OAuth2/OIDC information about the currently logged-in Google or Github user. The 200 response body can be either GoogleUserInfo or GithubUserInfo depending on the provider; clients should handle both. Returns 401 if not authenticated.",
+        "operationId": "getCurrentOAuth2User",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/GoogleUserInfo"
+                    },
+                    {
+                      "$ref": "#/components/schemas/GithubUserInfo"
+                    }
+                  ]
+                }
+              }
+            }
           },
-          "404": {
-            "description": "User not found",
+          "401": {
+            "description": "Unauthenticated",
             "content": {
               "application/json": {
                 "schema": {
@@ -1080,21 +1109,21 @@
         }
       }
     },
-    "/users/me": {
+    "/users/me/provider": {
       "get": {
         "tags": [
           "user-handler"
         ],
-        "summary": "Get current Google user info",
-        "description": "Returns OAuth2/OIDC information about the currently logged-in Google user. Returns 401 if not authenticated.",
-        "operationId": "getCurrentGoogleUser",
+        "summary": "Get current authentication provider",
+        "description": "Returns the OAuth2/OIDC provider name for the currently authenticated user (e.g., google, github). Returns 401 if not authenticated.",
+        "operationId": "getAuthProvider",
         "responses": {
           "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GoogleUserInfo"
+                  "$ref": "#/components/schemas/AuthProviderResponse"
                 }
               }
             }
@@ -1812,6 +1841,126 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "GithubUserInfo": {
+        "required": [
+          "scopes"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "nodeId": {
+            "type": "string"
+          },
+          "login": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          },
+          "htmlUrl": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "reposUrl": {
+            "type": "string"
+          },
+          "followersUrl": {
+            "type": "string"
+          },
+          "followingUrl": {
+            "type": "string"
+          },
+          "gistsUrl": {
+            "type": "string"
+          },
+          "starredUrl": {
+            "type": "string"
+          },
+          "subscriptionsUrl": {
+            "type": "string"
+          },
+          "organizationsUrl": {
+            "type": "string"
+          },
+          "eventsUrl": {
+            "type": "string"
+          },
+          "receivedEventsUrl": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "blog": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "twitterUsername": {
+            "type": "string"
+          },
+          "publicRepos": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "publicGists": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "followers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "following": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "siteAdmin": {
+            "type": "boolean"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AuthProviderResponse": {
+        "required": [
+          "provider"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
           }
         }
       }

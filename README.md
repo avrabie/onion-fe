@@ -22,9 +22,10 @@ VITE_API_BASE=https://your-backend.example.com
 
 ## Authentication
 
-The frontend provides a login page at `/#/login` with two options:
+The frontend provides a login page at `/#/login` with multiple options:
 
 - Continue with Google: redirects the browser to the backend at `/oauth2/authorization/google` (Spring Security OAuth2).
+- Continue with GitHub: redirects the browser to the backend at `/oauth2/authorization/github` (Spring Security OAuth2).
 - Username/Password: posts a regular HTML form to the backend at `/login` (Spring Security formLogin).
 
 When the user is authenticated, the header shows a Logout button that posts a form to `/logout`.

@@ -13,6 +13,7 @@ export default function Register() {
   const [googleInfo, setGoogleInfo] = useState(null)
 
   const googleUrl = useMemo(() => api.getOAuthUrl('google'), [])
+  const githubUrl = useMemo(() => api.getOAuthUrl('github'), [])
 
   useEffect(() => {
     let cancelled = false
@@ -48,7 +49,7 @@ export default function Register() {
           navigate('/me')
           return
         }
-      } catch (_) { /* not logged in with Google or ensure failed, fall through */ }
+      } catch (_) { /* not logged in with OAuth or ensure failed, fall through */ }
       navigate('/login')
     } catch (e) {
       setError(e.message || 'Registration failed')
@@ -73,7 +74,7 @@ export default function Register() {
         saveAppUserId(created.id)
         navigate('/me')
       } else {
-        setError('Could not create account from Google session')
+        setError('Could not create account from your session')
       }
     } catch (e) {
       // Fallback path if ensure failed
@@ -83,10 +84,10 @@ export default function Register() {
           saveAppUserId(created.id)
           navigate('/me')
         } else {
-          setError('Could not create account from Google session')
+          setError('Could not create account from your session')
         }
       } catch (e2) {
-        setError(e2.message || e.message || 'Could not create account from Google session')
+        setError(e2.message || e.message || 'Could not create account from your session')
       }
     } finally {
       setLoading(false)
@@ -100,15 +101,23 @@ export default function Register() {
           <div className="text-center mb-6">
             <div className="text-5xl mb-3">🧑‍💻</div>
             <h1 className="text-2xl font-extrabold tracking-tight">Create your account</h1>
-            <p className="text-white/70 text-sm mt-1">Use Google or fill in the form below</p>
+            <p className="text-white/70 text-sm mt-1">Use Google or GitHub, or fill in the form below</p>
           </div>
 
           <a
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 transition-colors py-2.5 mb-4"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 transition-colors py-2.5 mb-2"
             href={googleUrl}
           >
             <span>Continue with</span>
             <span className="text-lg">🔎 Google</span>
+          </a>
+
+          <a
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 transition-colors py-2.5 mb-4"
+            href={githubUrl}
+          >
+            <span>Continue with</span>
+            <span className="text-lg">🐙 GitHub</span>
           </a>
 
           {googleInfo && (
@@ -117,7 +126,7 @@ export default function Register() {
                 <img src={googleInfo.picture} alt="Google avatar" className="w-8 h-8 rounded-full" />
               )}
               <div className="flex-1">
-                <div>Signed in with Google as <span className="font-semibold">{googleInfo.email || googleInfo.name}</span></div>
+                <div>Signed in as <span className="font-semibold">{googleInfo.email || googleInfo.name}</span></div>
                 <div className="text-emerald-200/80">We prefilled the form for you.</div>
               </div>
               <button
@@ -126,7 +135,7 @@ export default function Register() {
                 className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white"
                 disabled={loading}
               >
-                Create account from Google
+                Create account from your session
               </button>
             </div>
           )}

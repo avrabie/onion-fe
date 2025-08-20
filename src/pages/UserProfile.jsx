@@ -5,6 +5,7 @@ import { api, buildUrl, saveAppUserId } from '../api'
 export default function UserProfile() {
   const navigate = useNavigate()
   const [me, setMe] = useState(null)
+  const [provider, setProvider] = useState(null)
   const [appUser, setAppUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -34,6 +35,14 @@ export default function UserProfile() {
         }
         if (!mounted) return
         setMe(current)
+
+        // Load current authentication provider
+        try {
+          const prov = await api.getAuthProvider()
+          if (mounted) setProvider(prov?.provider || null)
+        } catch (_) {
+          if (mounted) setProvider(null)
+        }
 
         // Resolve application user id for the current principal and keep it in sync
         let id
@@ -141,7 +150,8 @@ export default function UserProfile() {
 
   const productNameById = useMemo(() => new Map((products || []).map((p) => [p.id, p.name])), [products])
 
-  const displayName = useMemo(() => me?.name || me?.username || me?.email || 'User', [me])
+  const displayName = useMemo(() => me?.name || me?.login || me?.username || me?.email || 'User', [me])
+  const avatarUrl = useMemo(() => me?.picture || me?.avatarUrl || null, [me])
 
   if (loading) {
     return (
@@ -167,8 +177,8 @@ export default function UserProfile() {
       <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 to-white/[0.03] p-6 shadow-card">
         <div className="flex flex-col sm:flex-row gap-6">
           <div className="flex-shrink-0">
-            {me.picture ? (
-              <img src={me.picture} alt={displayName} className="w-24 h-24 rounded-full object-cover border border-white/10" />
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={displayName} className="w-24 h-24 rounded-full object-cover border border-white/10" />
             ) : (
               <div className="w-24 h-24 rounded-full bg-slate-800 flex items-center justify-center text-3xl">👤</div>
             )}
@@ -179,26 +189,57 @@ export default function UserProfile() {
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="rounded-xl border border-white/10 p-4">
-                <h2 className="text-sm font-semibold text-white/90 mb-3">Identity provider (users/me)</h2>
-                <dl className="text-sm text-white/80 space-y-1">
-                  {me.email && (<div><dt className="inline text-white/60">Email:</dt> <dd className="inline ml-1">{me.email}</dd></div>)}
-                  {me.username && (<div><dt className="inline text-white/60">Username:</dt> <dd className="inline ml-1">{me.username}</dd></div>)}
-                  {me.givenName && (<div><dt className="inline text-white/60">Given name:</dt> <dd className="inline ml-1">{me.givenName}</dd></div>)}
-                  {me.familyName && (<div><dt className="inline text-white/60">Family name:</dt> <dd className="inline ml-1">{me.familyName}</dd></div>)}
-                  {me.locale && (<div><dt className="inline text-white/60">Locale:</dt> <dd className="inline ml-1">{me.locale}</dd></div>)}
-                  {typeof me.emailVerified === 'boolean' && (<div><dt className="inline text-white/60">Email verified:</dt> <dd className="inline ml-1">{String(me.emailVerified)}</dd></div>)}
-                  {me.subject && (<div><dt className="inline text-white/60">Subject:</dt> <dd className="inline ml-1 break-all">{me.subject}</dd></div>)}
-                  {Array.isArray(me.scopes) && me.scopes.length > 0 && (
-                    <div>
-                      <dt className="block text-white/60">Scopes:</dt>
-                      <dd className="mt-1 flex flex-wrap gap-2">
-                        {me.scopes.map((s) => (
-                          <span key={s} className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-white/10 border border-white/10">{s}</span>
-                        ))}
-                      </dd>
-                    </div>
-                  )}
-                </dl>
+                <h2 className="text-sm font-semibold text-white/90 mb-3">
+                  Identity provider {provider ? (<span className="ml-1 px-2 py-0.5 rounded-full bg-white/10 border border-white/10 uppercase text-[10px] tracking-wide">{provider}</span>) : null}
+                </h2>
+                {/* Provider-specific details */}
+                {provider === 'github' ? (
+                  <dl className="text-sm text-white/80 space-y-1">
+                    {me.login && (<div><dt className="inline text-white/60">Login:</dt> <dd className="inline ml-1">{me.login}</dd></div>)}
+                    {me.name && (<div><dt className="inline text-white/60">Name:</dt> <dd className="inline ml-1">{me.name}</dd></div>)}
+                    {me.email && (<div><dt className="inline text-white/60">Email:</dt> <dd className="inline ml-1">{me.email}</dd></div>)}
+                    {me.htmlUrl && (<div><dt className="inline text-white/60">Profile:</dt> <dd className="inline ml-1"><a href={me.htmlUrl} target="_blank" rel="noreferrer" className="underline">{me.htmlUrl}</a></dd></div>)}
+                    {me.company && (<div><dt className="inline text-white/60">Company:</dt> <dd className="inline ml-1">{me.company}</dd></div>)}
+                    {me.blog && (<div><dt className="inline text-white/60">Blog:</dt> <dd className="inline ml-1"><a href={me.blog} target="_blank" rel="noreferrer" className="underline break-all">{me.blog}</a></dd></div>)}
+                    {me.location && (<div><dt className="inline text-white/60">Location:</dt> <dd className="inline ml-1">{me.location}</dd></div>)}
+                    {me.bio && (<div><dt className="inline text-white/60">Bio:</dt> <dd className="inline ml-1">{me.bio}</dd></div>)}
+                    {typeof me.publicRepos === 'number' && (<div><dt className="inline text-white/60">Public repos:</dt> <dd className="inline ml-1">{me.publicRepos}</dd></div>)}
+                    {typeof me.followers === 'number' && (<div><dt className="inline text-white/60">Followers:</dt> <dd className="inline ml-1">{me.followers}</dd></div>)}
+                    {typeof me.following === 'number' && (<div><dt className="inline text-white/60">Following:</dt> <dd className="inline ml-1">{me.following}</dd></div>)}
+                    {me.createdAt && (<div><dt className="inline text-white/60">Created at:</dt> <dd className="inline ml-1">{new Date(me.createdAt).toLocaleString()}</dd></div>)}
+                    {me.updatedAt && (<div><dt className="inline text-white/60">Updated at:</dt> <dd className="inline ml-1">{new Date(me.updatedAt).toLocaleString()}</dd></div>)}
+                    {Array.isArray(me.scopes) && me.scopes.length > 0 && (
+                      <div>
+                        <dt className="block text-white/60">Scopes:</dt>
+                        <dd className="mt-1 flex flex-wrap gap-2">
+                          {me.scopes.map((s) => (
+                            <span key={s} className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-white/10 border border-white/10">{s}</span>
+                          ))}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                ) : (
+                  <dl className="text-sm text-white/80 space-y-1">
+                    {me.email && (<div><dt className="inline text-white/60">Email:</dt> <dd className="inline ml-1">{me.email}</dd></div>)}
+                    {me.username && (<div><dt className="inline text-white/60">Username:</dt> <dd className="inline ml-1">{me.username}</dd></div>)}
+                    {me.givenName && (<div><dt className="inline text-white/60">Given name:</dt> <dd className="inline ml-1">{me.givenName}</dd></div>)}
+                    {me.familyName && (<div><dt className="inline text-white/60">Family name:</dt> <dd className="inline ml-1">{me.familyName}</dd></div>)}
+                    {me.locale && (<div><dt className="inline text-white/60">Locale:</dt> <dd className="inline ml-1">{me.locale}</dd></div>)}
+                    {typeof me.emailVerified === 'boolean' && (<div><dt className="inline text-white/60">Email verified:</dt> <dd className="inline ml-1">{String(me.emailVerified)}</dd></div>)}
+                    {me.subject && (<div><dt className="inline text-white/60">Subject:</dt> <dd className="inline ml-1 break-all">{me.subject}</dd></div>)}
+                    {Array.isArray(me.scopes) && me.scopes.length > 0 && (
+                      <div>
+                        <dt className="block text-white/60">Scopes:</dt>
+                        <dd className="mt-1 flex flex-wrap gap-2">
+                          {me.scopes.map((s) => (
+                            <span key={s} className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-white/10 border border-white/10">{s}</span>
+                          ))}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                )}
               </div>
 
               <div className="rounded-xl border border-white/10 p-4">
@@ -231,14 +272,14 @@ export default function UserProfile() {
                             saveAppUserId(ensured.id)
                             setAppUser(ensured)
                           } else {
-                            // Fallback: create via POST /users using Google info
-                            const created = await api.createUserFromGoogle()
-                            if (created && created.id != null) {
+                              // Fallback: create via POST /users using current OAuth session info
+                              const created = await api.createUserFromGoogle()
+                              if (created && created.id != null) {
                               saveAppUserId(created.id)
                               setAppUser(created)
-                            } else {
-                              setCreateError('Could not create account from your Google session.')
-                            }
+                              } else {
+                              setCreateError('Could not create account from your session.')
+                              }
                           }
                         } catch (e) {
                           // If ensure failed (e.g., not found), try to create via POST /users
@@ -251,7 +292,7 @@ export default function UserProfile() {
                               setCreateError('Could not create account from your Google session.')
                             }
                           } catch (e2) {
-                            setCreateError(e2?.message || e?.message || 'Could not create account from your Google session.')
+                            setCreateError(e2?.message || e?.message || 'Could not create account from your session.')
                           }
                         } finally {
                           setCreating(false)
@@ -259,7 +300,7 @@ export default function UserProfile() {
                       }}
                       className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-60"
                     >
-                      {creating ? 'Creating…' : 'Create account from Google'}
+                      {creating ? 'Creating…' : 'Create account from your session'}
                     </button>
                   </div>
                 )}
