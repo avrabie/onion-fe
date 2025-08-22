@@ -28,7 +28,7 @@ export default function ProductCard({ product, onAdd }) {
       {/* Body */}
       <div className="flex-1 pt-3 sm:pt-4">
         <Link to={`/product/${slug}`} className="text-base sm:text-lg font-semibold text-white leading-snug hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-400/40">{product.name}</Link>
-        <p className="mt-1 text-xs sm:text-sm text-white/70 line-clamp-2">{product.description || 'Delicious onion from the finest fields.'}</p>
+        <p className="mt-1 text-xs sm:text-sm text-white/70 line-clamp-2">{product.description || 'Glorious Soviet Onion, cultivated for strength, unity, and soup.'}</p>
       </div>
 
       {/* Footer */}

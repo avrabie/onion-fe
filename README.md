@@ -1,6 +1,6 @@
-# Onion Shop FE (React + Vite)
+# Soviet Onion Shop FE (React + Vite)
 
-This is a React frontend (Vite) for the Onion Shop. It talks to a Spring Boot backend.
+This is a React frontend (Vite) for the Soviet Onion Shop — a glorious marketplace for bulbs that could power a five‑year plan. It talks to a Spring Boot backend.
 
 ## Running locally
 

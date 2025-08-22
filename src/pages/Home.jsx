@@ -38,7 +38,7 @@ export default function Home({ products, onAdd, loading, error }) {
           <div className="relative z-10 max-w-3xl">
             <p className="text-sm text-emerald-200/80 tracking-wider uppercase">Locally sourced • Delivered fast</p>
             <h1 className="mt-2 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight flex items-center gap-3">
-              <span>Farm‑fresh Onions</span>
+              <span>Comrade‑approved Soviet Onions</span>
               <span className="hidden sm:inline text-4xl">🧅</span>
             </h1>
             <p className="mt-3 text-white/80 text-sm sm:text-base">From sweet to sharp, stock your pantry with the finest bulbs. Zero tears at checkout.</p>
@@ -48,7 +48,7 @@ export default function Home({ products, onAdd, loading, error }) {
               ))}
             </div>
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
-              <a href="#shop" className="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-400/40">Shop onions</a>
+              <a href="#shop" className="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-400/40">Shop Soviet onions</a>
               <Link to="/about" className="inline-flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/15 px-4 py-2.5 font-medium border border-white/10 focus:outline-none focus:ring-2 focus:ring-white/30">Learn more</Link>
             </div>
             <div className="mt-6 flex gap-6 text-xs text-white/70">
@@ -74,7 +74,7 @@ export default function Home({ products, onAdd, loading, error }) {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search onions…"
+              placeholder="Search Soviet onions…"
               className="flex-1 bg-transparent outline-none text-sm placeholder:text-white/50"
               aria-label="Search products"
             />
@@ -113,7 +113,7 @@ export default function Home({ products, onAdd, loading, error }) {
         <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 sm:p-5 flex items-center justify-between gap-3">
           <div className="text-sm">
             <p className="font-semibold text-emerald-200">Summer Harvest Sale</p>
-            <p className="text-white/80">Get 10% off red onions. Limited time only.</p>
+            <p className="text-white/80">Get 10% off red Soviet onions. Limited time only — supply convoy pending.</p>
           </div>
           <a href="#shop" className="shrink-0 inline-flex items-center rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-2 text-sm font-medium">Shop deals</a>
         </div>
@@ -122,7 +122,7 @@ export default function Home({ products, onAdd, loading, error }) {
       {/* Product grid */}
       <section>
         <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-lg sm:text-xl font-bold">Browse onions</h2>
+          <h2 className="text-lg sm:text-xl font-bold">Browse Soviet onions</h2>
           <span className="text-xs text-white/60">{filtered.length} items</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -138,7 +138,7 @@ export default function Home({ products, onAdd, loading, error }) {
           {!showSkeletons && filtered.length === 0 && (
             <div className="col-span-full text-center py-12 border border-white/10 rounded-2xl bg-white/5">
               <div className="text-4xl mb-2">😿</div>
-              <p className="text-white/80">No onions match your filters.</p>
+              <p className="text-white/80">No Soviet onions matched the five‑year plan. Adjust filters, comrade.</p>
               <button onClick={() => { setQuery(''); setCategory('all'); setSort('popular'); }} className="mt-4 inline-flex items-center px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500">Reset filters</button>
             </div>
           )}

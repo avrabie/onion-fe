@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api'
 
-export default function ProductDetails() {
+export default function ProductDetails({ onAdd }) {
   const { slug } = useParams()
   const navigate = useNavigate()
   const [product, setProduct] = useState(null)
@@ -81,6 +81,17 @@ export default function ProductDetails() {
                   <div className="text-xs text-white/60">Stock</div>
                   <div className="text-white font-semibold">{product.quantity ?? 0}</div>
                 </div>
+              </div>
+              <div className="mt-4">
+                <button
+                  disabled={(product.quantity ?? 0) <= 0}
+                  onClick={() => onAdd?.(product)}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${(product.quantity ?? 0) <= 0 ? 'bg-gray-600 cursor-not-allowed text-white/60' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}
+                  aria-label="Add to cart"
+                >
+                  <span>Add to cart</span>
+                  <span>➕</span>
+                </button>
               </div>
               {interestingInfo.length > 0 && (
                 <div className="mt-6">

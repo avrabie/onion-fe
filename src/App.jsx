@@ -17,7 +17,7 @@ function SuccessPage() {
       <div className="max-w-md w-full text-center bg-white/5 border border-white/10 rounded-xl p-8">
         <div className="text-5xl mb-4">✅</div>
         <h1 className="text-2xl font-bold mb-2">Payment successful</h1>
-        <p className="text-white/70 mb-6">Thank you for your purchase. Your onions are on their way!</p>
+        <p className="text-white/70 mb-6">Spasibo, comrade! Your Soviet onions are en route by express tractor!</p>
         <Link to="/" className="inline-block px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500">Back to shop</Link>
       </div>
     </div>
@@ -388,7 +388,7 @@ function App() {
           <div className="max-w-6xl mx-auto px-4 py-3 sm:py-4 flex items-center justify-between">
             <Link to="/" className="text-xl sm:text-2xl font-extrabold tracking-tight flex items-center gap-2">
               <span className="text-2xl">🧅</span>
-              <span>Onion Shop</span>
+              <span>Soviet Onion Shop</span>
             </Link>
             <nav className="flex items-center gap-4 sm:gap-6 text-white/80">
               <Link className="hover:text-white" to="/">Home</Link>
@@ -412,7 +412,7 @@ function App() {
                 </span>
               </Link>
               <span className="text-xs sm:text-sm text-white/60 hidden sm:inline">
-                {loading.products ? 'Loading onions…' : `${products.length} products`}
+                {loading.products ? 'Loading Soviet onions…' : `${products.length} products`}
               </span>
             </nav>
           </div>
@@ -429,7 +429,7 @@ function App() {
               element={<CartPage isAuthenticated={!!currentUser} cart={cart} products={products} onRemove={handleRemove} onEmpty={handleEmpty} onCheckout={handleCheckout} loadingAction={loading.action} onIncrease={handleIncrease} onDecrease={handleDecrease} />}
             />
             <Route path="/about" element={<About />} />
-            <Route path="/product/:slug" element={<ProductDetails />} />
+            <Route path="/product/:slug" element={<ProductDetails onAdd={handleAdd} />} />
             <Route path="/checkout/success" element={<SuccessPage />} />
             <Route path="/checkout/cancel" element={<CancelPage />} />
             <Route path="/login" element={<Login />} />
@@ -440,7 +440,7 @@ function App() {
         </main>
 
         <footer className="mt-8 border-t border-white/10 py-8 text-center text-white/60">
-          <p className="text-sm">Fresh onions. Local backend. Have a tear-free day.</p>
+          <p className="text-sm">Fresh Soviet onions. Local backend. Zero capitalist tears.</p>
         </footer>
       </div>
     </HashRouter>
